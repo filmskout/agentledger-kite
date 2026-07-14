@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentLedger — Owner Console (Kite)</title>
+<style>
+  :root { --bg:#0a1210; --card:#101d19; --line:#1e332c; --txt:#dcefe8; --dim:#8fb3a6; --acc:#25c98a; --warn:#ffb347; --bad:#ff5d6c; --blue:#4f8cff; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--txt); font:14px/1.6 "SF Mono",ui-monospace,Menlo,monospace; padding:20px; }
+  h1 { font-size:20px; } h1 .k { color:var(--acc); }
+  .sub { color:var(--dim); font-size:12px; margin:4px 0 16px; }
+  .agents { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  @media (max-width:900px){ .agents{grid-template-columns:1fr} }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card h2 { font-size:13px; color:var(--dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+  .kv { display:grid; grid-template-columns:110px 1fr; gap:2px 10px; font-size:12.5px; }
+  .kv b { color:var(--dim); font-weight:400; } .mono { word-break:break-all; }
+  .badge { font-size:11px; padding:1px 8px; border-radius:10px; border:1px solid var(--acc); color:var(--acc); }
+  .badge.frozen { border-color:var(--bad); color:var(--bad); }
+  .bar { height:8px; background:#08201a; border-radius:4px; overflow:hidden; margin:6px 0 2px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--acc),var(--warn)); transition:width .5s; }
+  button { background:transparent; color:var(--acc); border:1px solid var(--acc); border-radius:7px; padding:3px 12px; font:inherit; font-size:12px; cursor:pointer; margin-left:6px; }
+  button.danger { color:var(--bad); border-color:var(--bad); }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th,td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:400; }
+  .sim { color:var(--warn); } .in { color:var(--acc); } .out { color:var(--blue); }
+  .flag { background:#3d1420; color:var(--bad); font-size:10px; padding:0 6px; border-radius:8px; margin-left:4px; }
+  #spark { width:100%; height:90px; }
+  a { color:var(--blue); text-decoration:none; }
+</style>
+</head>
+<body>
+<h1>Agent<span class="k">Ledger</span> <span style="font-size:12px;color:var(--dim)">— owner console: budgets · spend · audit · control | Kite Agent Passport</span></h1>
+<p class="sub">一个所有者名下所有 agent 的额度/消耗/流水统一视图 · 数据来自 QuantScout(买家)与 PayGen(商户)的真实运行流水</p>
+
+<div class="agents" id="agents"></div>
+
+<div class="card" style="margin-bottom:14px">
+  <h2>消耗时间线(全部 agent)</h2>
+  <canvas id="spark" width="1000" height="90"></canvas>
+</div>
+
+<div class="card">
+  <h2>合并流水(时间序 · 异常规则: 单笔≥$0.5 / 60s内≥3笔)</h2>
+  <table>
+    <thead><tr><th>时间</th><th>agent</th><th>方向</th><th>用途</th><th>金额</th><th>tx</th><th>异常</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="7" style="color:var(--dim)">加载中…</td></tr></tbody>
+  </table>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+async function ctrl(agent, action) { await fetch(`api/control?agent=${agent}&action=${action}`, { method: "POST" }); poll(); }
+async function poll() {
+  const d = await (await fetch("api/overview")).json();
+  $("agents").innerHTML = d.agents.map((a) => {
+    const frozen = a.sessionStatus.startsWith("FROZEN");
+    const pct = a.budgetTotal ? Math.min(100, a.spent / a.budgetTotal * 100) : 0;
+    return `<div class="card">
+      <h2>${a.name} <span style="font-weight:400;font-size:11px;color:var(--dim)">${a.role}</span>
+        <span><span class="badge ${frozen ? "frozen" : ""}">${a.sessionStatus}</span>
+        ${frozen ? `<button onclick="ctrl('${a.key}','unfreeze')">解冻</button>`
+                 : `<button class="danger" onclick="ctrl('${a.key}','freeze')">冻结</button>`}
+        ${a.budgetTotal != null ? `<button onclick="ctrl('${a.key}','raise')">+$1 调额</button>` : ""}</span></h2>
+      <div class="kv">
+        <b>agent_id</b><span class="mono">${a.agentId}</span>
+        <b>owner</b><span class="mono">${a.owner}</span>
+        <b>session</b><span class="mono">${a.sessionId}</span>
+        ${a.budgetTotal != null
+          ? `<b>预算</b><span>$${a.spent.toFixed(2)} / $${a.budgetTotal.toFixed(2)}</span>`
+          : `<b>累计收入</b><span class="in">$${(a.income || 0).toFixed(2)}</span>`}
+        <b>demo</b><span><a href="${a.url}" target="_blank">${a.url}</a></span>
+      </div>
+      ${a.budgetTotal != null ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ""}
+    </div>`;
+  }).join("");
+  const L = d.ledger;
+  $("rows").innerHTML = L.length ? L.slice().reverse().map((l) =>
+    `<tr><td>${new Date(l.ts).toLocaleTimeString()}</td><td>${l.agent}</td>` +
+    `<td class="${l.dir}">${l.dir === "in" ? "收 ←" : "付 →"}</td><td>${l.purpose}</td><td>$${l.amount}</td>` +
+    `<td class="mono ${l.simulated ? "sim" : ""}">${(l.tx || "-").toString().slice(0, 16)}${l.simulated ? " ⚠sim" : ""}</td>` +
+    `<td>${(l.flags || []).map((f) => `<span class="flag">${f}</span>`).join("")}</td></tr>`).join("")
+    : '<tr><td colspan="7" style="color:var(--dim)">暂无流水 — 去 QuantScout 跑一轮研究或在 PayGen 买一张图</td></tr>';
+  drawSpark(L);
+}
+function drawSpark(L) {
+  const c = $("spark"), x = c.getContext("2d");
+  x.clearRect(0, 0, c.width, c.height);
+  if (!L.length) return;
+  const t0 = L[0].ts, t1 = L[L.length - 1].ts || t0 + 1, pad = 10;
+  let cum = 0; const pts = L.map((l) => { cum += parseFloat(l.amount); return { t: l.ts, v: cum }; });
+  const vmax = pts[pts.length - 1].v || 1;
+  x.strokeStyle = "#25c98a"; x.lineWidth = 1.5; x.beginPath();
+  pts.forEach((p, i) => {
+    const px = pad + ((p.t - t0) / Math.max(t1 - t0, 1)) * (c.width - 2 * pad);
+    const py = c.height - pad - (p.v / vmax) * (c.height - 2 * pad);
+    i ? x.lineTo(px, py) : x.moveTo(px, py);
+    x.fillStyle = "#25c98a"; x.fillRect(px - 1.5, py - 1.5, 3, 3);
+  });
+  x.stroke();
+}
+poll(); setInterval(poll, 3000);
+</script>
+</body>
+</html>
