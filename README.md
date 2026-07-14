@@ -13,7 +13,7 @@
 - **QuantScout** (buyer) — autonomous quant-research agent spending its budget on market data
 - **PayGen** (merchant) — pay-per-call AI creation service earning per request
 
-Run a research round in QuantScout or buy an image in PayGen, then watch the ledger and spend timeline update here in real time. **The flows are real runtime data, not fixtures.**
+Run a research round in QuantScout or buy an image in PayGen, then watch the ledger and spend timeline update here in real time. **The flows are real on-chain transactions on Kite testnet, not fixtures** — every tx hash links to testnet.kitescan.ai.
 
 ## Features
 

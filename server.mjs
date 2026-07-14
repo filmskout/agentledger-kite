@@ -60,7 +60,7 @@ async function aggregate() {
       agentId: "merchant:" + (pgHealth?.service || "paygen"), owner: "ken.y.law@gmail.com",
       sessionId: "x402 " + (pgHealth?.network || ""), sessionStatus: policy["paygen-merchant"].frozen ? "FROZEN(owner)" : "active",
       budgetTotal: null, spent: null, income: +income.toFixed(2), todaySpend: 0,
-      ledger: (pgLedger.ledger || []).map((l) => ({ ts: l.ts, seq: l.seq, purpose: `${l.tool} ← ${l.payer}`, amount: l.amount, tx: l.tx, simulated: l.simulated, status: l.status, agent: "PayGen", dir: "in" })),
+      ledger: (pgLedger.ledger || []).map((l) => ({ ts: l.ts, seq: l.seq, purpose: `${l.tool} ← ${(l.payer||"").slice(0,10)}`, amount: l.amount, tx: l.tx, simulated: l.simulated, status: l.status, agent: "PayGen", dir: "in" })),
       url: "/paygen/",
     });
   }
@@ -78,6 +78,7 @@ const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
   const send = (code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
   if (u.pathname === "/") { res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); return res.end(readFileSync(path.join(__dirname, "public", "index.html"))); }
+  if (u.pathname === "/hero.jpg") { res.writeHead(200, { "Content-Type": "image/jpeg", "Cache-Control": "public,max-age=86400" }); return res.end(readFileSync(path.join(__dirname, "public", "hero.jpg"))); }
   if (u.pathname === "/health") return send(200, { ok: true, service: "agentledger" });
   if (u.pathname === "/api/overview") return send(200, await aggregate());
   if (u.pathname === "/api/control" && req.method === "POST") {

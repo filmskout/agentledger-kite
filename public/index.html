@@ -34,6 +34,8 @@
 <body>
 <h1>Agent<span class="k">Ledger</span> <span style="font-size:12px;color:var(--dim)">— owner console: budgets · spend · audit · control | Kite Agent Passport</span></h1>
 <p class="sub">一个所有者名下所有 agent 的额度/消耗/流水统一视图 · 数据来自 QuantScout(买家)与 PayGen(商户)的真实运行流水</p>
+<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line);margin:0 0 14px;position:relative"><img src="hero.jpg" style="width:100%;height:150px;object-fit:cover;display:block;opacity:.85"><span style="position:absolute;right:10px;bottom:8px;font-size:10px;color:#cfe;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:8px">🎨 本图由 PayGen 通过 x402 真实链上支付购买生成</span></div>
+
 
 <div class="agents" id="agents"></div>
 
@@ -80,7 +82,7 @@ async function poll() {
   $("rows").innerHTML = L.length ? L.slice().reverse().map((l) =>
     `<tr><td>${new Date(l.ts).toLocaleTimeString()}</td><td>${l.agent}</td>` +
     `<td class="${l.dir}">${l.dir === "in" ? "收 ←" : "付 →"}</td><td>${l.purpose}</td><td>$${l.amount}</td>` +
-    `<td class="mono ${l.simulated ? "sim" : ""}">${(l.tx || "-").toString().slice(0, 16)}${l.simulated ? " ⚠sim" : ""}</td>` +
+    `<td class="mono ${l.simulated ? "sim" : ""}">${l.tx && !l.simulated ? `<a href="https://testnet.kitescan.ai/tx/${l.tx}" target="_blank" style="color:var(--acc)">${l.tx.toString().slice(0,14)}…</a>` : (l.tx || "-").toString().slice(0, 16)}${l.simulated ? " ⚠sim" : ""}</td>` +
     `<td>${(l.flags || []).map((f) => `<span class="flag">${f}</span>`).join("")}</td></tr>`).join("")
     : '<tr><td colspan="7" style="color:var(--dim)">暂无流水 — 去 QuantScout 跑一轮研究或在 PayGen 买一张图</td></tr>';
   drawSpark(L);
