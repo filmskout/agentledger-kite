@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AgentLedger — Owner Console (Kite)</title>
 <style>
-  :root { --bg:#0a1210; --card:#101d19; --line:#1e332c; --txt:#dcefe8; --dim:#8fb3a6; --acc:#25c98a; --warn:#ffb347; --bad:#ff5d6c; --blue:#4f8cff; }
+  :root { --stripe:linear-gradient(90deg,#25c98a,#a8e063); --bg:#0a1210; --card:#101d19; --line:#1e332c; --txt:#dcefe8; --dim:#8fb3a6; --acc:#25c98a; --warn:#ffb347; --bad:#ff5d6c; --blue:#4f8cff; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--txt); font:14px/1.6 "SF Mono",ui-monospace,Menlo,monospace; padding:20px; }
   h1 { font-size:20px; } h1 .k { color:var(--acc); }
@@ -29,14 +29,37 @@
   .flag { background:#3d1420; color:var(--bad); font-size:10px; padding:0 6px; border-radius:8px; margin-left:4px; }
   #spark { width:100%; height:90px; }
   a { color:var(--blue); text-decoration:none; }
+
+  /* 系列顶部条 + 移动端适配 */
+  .series-stripe { height:4px; border-radius:2px; margin:-20px -20px 14px; background:var(--stripe); }
+  .series-nav { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px; }
+  .series-nav a { font-size:11px; padding:3px 10px; border-radius:12px; border:1px solid var(--line); color:var(--dim); text-decoration:none; }
+  .series-nav a.cur { border-color:var(--acc); color:var(--acc); font-weight:700; }
+  img.zoomable { cursor:zoom-in; }
+  #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:99; cursor:zoom-out; align-items:center; justify-content:center; }
+  #lightbox.on { display:flex; }
+  #lightbox img { max-width:94vw; max-height:92vh; border-radius:10px; }
+  @media (max-width:700px) {
+    body { padding:10px; font-size:13px; }
+    h1 { font-size:17px; } h1 span:not(.k) { display:block; margin-top:2px; }
+    .kv { grid-template-columns:86px 1fr; font-size:11.5px; }
+    .card { padding:10px 12px; }
+    .card h2 { flex-wrap:wrap; gap:4px; }
+    table { font-size:10.5px; display:block; overflow-x:auto; white-space:nowrap; }
+    .hero-img { height:90px !important; }
+    button { padding:8px 12px; font-size:12.5px; }
+    .series-stripe { margin:-10px -10px 10px; }
+  }
 </style>
 </head>
 <body>
+<div class="series-stripe"></div>
 <h1>Agent<span class="k">Ledger</span> <span style="font-size:12px;color:var(--dim)">— owner console: budgets · spend · audit · control | Kite Agent Passport</span></h1>
 <p class="sub">一个所有者名下所有 agent 的额度/消耗/流水统一视图 · 数据来自 QuantScout(买家)与 PayGen(商户)的真实运行流水</p>
-<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line);margin:0 0 14px;position:relative"><img src="hero.jpg" style="width:100%;height:150px;object-fit:cover;display:block;opacity:.85"><span style="position:absolute;right:10px;bottom:8px;font-size:10px;color:#cfe;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:8px">🎨 本图由 PayGen 通过 x402 真实链上支付购买生成</span></div>
+<div style="border-radius:12px;overflow:hidden;border:1px solid var(--line);margin:0 0 14px;position:relative"><img src="hero.jpg" class="zoomable hero-img" style="width:100%;height:150px;object-fit:cover;display:block;opacity:.85"><span style="position:absolute;right:10px;bottom:8px;font-size:10px;color:#cfe;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:8px">🎨 本图由 PayGen 通过 x402 真实链上支付购买生成</span></div>
 
 
+<div class="series-nav"><a href="../quantscout/" class="">① QuantScout·买家</a><a href="../paygen/" class="">② PayGen·商户</a><a href="../agentledger/" class="cur">③ AgentLedger·所有者</a></div>
 <div class="agents" id="agents"></div>
 
 <div class="card" style="margin-bottom:14px">
@@ -104,6 +127,11 @@ function drawSpark(L) {
   x.stroke();
 }
 poll(); setInterval(poll, 3000);
+</script>
+<div id="lightbox" onclick="this.classList.remove('on')"><img id="lbimg" src=""></div>
+<script>
+function lb(src){document.getElementById('lbimg').src=src;document.getElementById('lightbox').classList.add('on');}
+document.addEventListener('click',(e)=>{const t=e.target;if(t.tagName==='IMG'&&t.classList.contains('zoomable')&&!t.closest('#lightbox')){lb(t.src);}});
 </script>
 </body>
 </html>
